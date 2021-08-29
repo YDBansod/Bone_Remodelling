@@ -104,7 +104,7 @@ L=dot(f,v)*dx+v[1]*F*ds(1)
 def calculate_SED(epsilon_val,sigma_val):                
     SED_val=0.5*inner(sigma_val,epsilon_val)    
     SED_plot=project(SED_val, V_ele)
-    SED_values=SED_plot.vector().get_local() #nodal SED values
+    SED_values=SED_plot.vector().get_local()
     return(SED_values,SED_plot)
 
 def calculate_Density_change(rho_vals,SED):
@@ -121,16 +121,15 @@ def calculate_Density_change(rho_vals,SED):
             change_in_density.append(B*(stimulus[i]-k))                             
             rho_array[i]=rho_vals[i]+dt*change_in_density[i]
             
-            #check for convergence of the cell
             if rho_array[i]<= rho_min:  
                 cnt_cell_converged[i]=1
                 rho_array[i]=rho_min
                 
-            elif rho_array[i]>=rho_max:  #bocome cortical
+            elif rho_array[i]>=rho_max:  
                 cnt_cell_converged[i]=1
                 rho_array[i]=rho_max
                 
-            elif near(change_in_density[i],0.0,tol): #in equilibrium
+            elif near(change_in_density[i],0.0,tol): 
                 cnt_cell_converged[i]=1                
         else: 
             change_in_density.append(0)
