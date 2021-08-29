@@ -171,21 +171,16 @@ while day<=T:
     solve(a==L,u,bcs)
     cnt_freq=cnt_freq+0.01 
     
-    #calculate stress-strain from nodal solution u
     epsilon_val=epsilon(u)    
     sigma_val=sigma(u,mu,lmbda)
     
-    #calculate SED
     SED,SED_plt=calculate_SED(epsilon_val,sigma_val)
             
-    #calculate updated density
     updated_rho, updated_rho_val,cnt_cell_converged,change=calculate_Density_change(updated_rho_val,SED)      
     
-    #Calculate updated E
     E_updated_t=calculate_E(updated_rho_val) 
     E0.assign(E_updated_t)
-        
-    #calculate updated mu and lmbda    
+       
     mu, lmbda=calculate_Lame_coefficients(E0)    
     
     if cnt_freq>=1:
