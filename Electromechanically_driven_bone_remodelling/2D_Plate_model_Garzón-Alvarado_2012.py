@@ -1,11 +1,6 @@
-"""
-@author: Yogesh Deepak Bansod
-Implementing the electro-mechanical bone remodelling model based on Alvarado et al. 2012
-"""
 from fenics import *
 import numpy as np
 
-#************************************CREATE MESH AND FUNCTIONAL SACE************************************#      
 N=80
 mesh=UnitSquareMesh.create(N,N,CellType.Type.quadrilateral)
 
@@ -13,14 +8,12 @@ V_mech=VectorFunctionSpace(mesh,"CG",1)
 V_elemental=FunctionSpace(mesh,"DG",0)   
 V_elect=FunctionSpace(mesh,"CG",1) 
 
-#Output file path
 Fname="Alvarado_2012/lmbda_density_plot_"
 Fext=".pvd"
 
-#************************************MODEL PARAMETERS************************************#
 cnt_cell_converged=[]
 lmbda_val=[] 
-E0=6400             # N/cm2
+E0=6400             
 
 for cell_s in cells(mesh): 
     cnt_cell_converged.append(0)
@@ -28,7 +21,7 @@ for cell_s in cells(mesh):
     
 lmbda_min=0.0125
 lmbda_max=2.175 
-U_ref_mech=0.08   # N/cm2 
+U_ref_mech=0.08  
 nu=0.3
 
 n=2.0
@@ -36,24 +29,21 @@ k_mech=0.6125
 
 m=1.5486
 k_elect=0.0  
-eps_0=8.85E-14  #permitivity of free space F/cm
+eps_0=8.85E-14  
 
-rho0=0.0008         # kg/cm^3
+rho0=0.0008     
 eps=1050*(rho0**m)  
 
-voltage_1=Constant(100.0)  #voltage applied to right edge
-voltage_2=Constant(0.0)    #voltage applied to bottom edge
-U_ref_elect=0.08           # N/cm2 
+voltage_1=Constant(100.0)  
+voltage_2=Constant(0.0)    
+U_ref_elect=0.08           
 
-#time discretization parmeters
 Time=200
 dt=0.1
 t_cnt=dt
 
-#************************************DEFINE BOUNDARY CONDITIONS************************************#
 tol=1E-14
 
-# Mechanical BC
 def bottom_fixed_boundary(x,on_boundary):
     return near(x[0],0.0,tol) and near(x[1],0.0,tol)
 Fixed_left=Constant((0.,0.)) 
@@ -66,7 +56,7 @@ bc_Roller=DirichletBC(V_mech.sub(1),Roller_right,bottom_right_boundary,method='p
 
 bcs_mech=[bc_Fixed,bc_Roller]
 
-#redefine the boundary integrals
+
 class Top(SubDomain):
     def inside(self,x,on_boundary):
         return near(x[1],1.0,tol) and on_boundary
@@ -90,14 +80,12 @@ bottom.mark(boundries,3)
 
 ds=Measure('ds', domain=mesh,subdomain_data=boundries)
 
-F=Expression("m*x[0]+c",m=-100.0,c=100.0,degree=1)  #N/cm2
+F=Expression("m*x[0]+c",m=-100.0,c=100.0,degree=1)  
 
-# Electrical BC
 bc_right_vlt=DirichletBC(V_elect,voltage_1,boundries,0)
 bc_bottom_vlt=DirichletBC(V_elect,voltage_2,boundries,3)
 bcs_elect=[bc_right_vlt,bc_bottom_vlt]
 
-#Matrix of linear elasticity
 def calculate_C0(E0_val,nu):
     T1 = E0_val/(1-nu**2)
     D = np.array([[T1, T1*nu, 0.0],
@@ -106,11 +94,9 @@ def calculate_C0(E0_val,nu):
                  ])
     return D
 
-#strain in vigot format
 def epsilon(u):
     return as_vector([u[i].dx(i) for i in range(2)] +[u[i].dx(j) + u[j].dx(i) for (i,j) in [(0,1)]])
 
-#Functions for calculating mechanical stimulus
 def calculate_lmbda_plot(lmbda):
     lmbda_plot=Function(V_elemental) 
     lmbda_array=lmbda_plot.vector().get_local()
@@ -137,7 +123,6 @@ def change_in_lmbda_mech(u,C0,lmbda):
         dlmbda_mech.append(mech_stimulus)
     return dlmbda_mech
 
-# Functions for calculating electrical stimulus    
 def calculate_U_elect(phi):
     U_elect=0.5*eps_0*((-grad(phi))**2.0)  
     U_elect_nodal=project(U_elect,V_elect)
@@ -158,7 +143,6 @@ def change_in_lmbda_elect(phi,lmbda):
         dlmbda_elect.append(elect_stimulus)
     return dlmbda_elect 
     
-# Calculate updated density
 def calculate_new_lmbda(lmbda_plt, mechanical_stimulus,Elect_stimulus):
     new_lmbda=[]     
     lmbda_arr=lmbda_plt.vector().get_local()
@@ -180,7 +164,6 @@ def calculate_new_lmbda(lmbda_plt, mechanical_stimulus,Elect_stimulus):
     updated_lm_plt=calculate_lmbda_plot(new_lmbda)     
     return updated_lm_plt
     
-#***********************************************************************************************************#        
 u=TrialFunction(V_mech)    
 v1=TestFunction(V_mech)
 v2=TestFunction(V_mech)
@@ -192,13 +175,11 @@ C0_mat=as_matrix(C0)
 
 lmbda_plot=calculate_lmbda_plot(lmbda_val)
 
-#Variation formulation - mechanical
 a_mech=inner(epsilon(v1),(lmbda_plot**n)*C0_mat*epsilon(u))*dx
 L_mech=dot(b,v2)*dx + v2[1]*F*ds(1) 
 
 u=Function(V_mech)
 
-#variation formulation - electrical
 phi=TrialFunction(V_elect)
 w=TestFunction(V_elect)
 n_elect=FacetNormal(mesh)
