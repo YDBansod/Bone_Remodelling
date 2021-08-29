@@ -1,14 +1,13 @@
 from __future__ import print_function
 from dolfin import *
 import sys
-#************************************CREATE MESH AND FUNCTION SACE************************************#      
+
 N=20
 mesh = RectangleMesh(Point(0.0, 0.0), Point(1.0,1.0), 20, 20,"crossed")
 
 V=VectorFunctionSpace(mesh,"P",1)  
 V_ele=FunctionSpace(mesh,"DG",0) 
 
-##************************************MODEL PARAMETERS************************************#
 FName_str="Fernandez_plate_model/Density_"  
 FExt_str=".pvd"
 
@@ -40,7 +39,6 @@ t=dt
 
 cnt_cells=mesh.num_cells()
 
-#************************************DEFINE BOUNDARY CONDITIONS************************************#
 tol=1E-14  
 
 def bottom_fixed_boundary(x,on_boundary):
@@ -51,11 +49,10 @@ bc_Fixed=DirichletBC(V,Fixed_left,bottom_fixed_boundary,method='pointwise')
 def bottom_right_boundary(x,on_boundary):
     return near(x[1],0.0,tol) and x[0]>0.0
 Roller_right=Constant(0)
-bc_roller=DirichletBC(V.sub(1),Roller_right,bottom_right_boundary) #,method='pointwise')    
+bc_roller=DirichletBC(V.sub(1),Roller_right,bottom_right_boundary) 
 
 bcs=[bc_Fixed,bc_roller]
 
-#************************************MARK SUBDOMAIN FOR TOP EDGE************************************#
 class Top(SubDomain):
     tol=1E-14
     def inside(self,x,on_boundary):
@@ -70,7 +67,6 @@ ds=Measure('ds', domain=mesh,subdomain_data=boundries)
 
 F=Expression("m*x[0]+c",m=-10.0,c=10.0,degree=1)
 
-#************************************COMPUTE MATERIAL PARAMETERS************************************#
 def calculate_E(updated_rho_val):
     E_updated=Function(V_ele) 
     E_array=E_updated.vector().get_local()
@@ -80,7 +76,7 @@ def calculate_E(updated_rho_val):
     return E_updated
 
 E0=calculate_E(rho_val) 
-#************************************COMPUTE THE LAME'S COEFFICIENTS************************************#
+
 def calculate_Lame_coefficients(E_val):
     mu_val=(E_val)/(2*(1+nu))  
     lmbda_val=(E_val*nu)/((1+nu)*(1-2*(nu))) 
@@ -88,7 +84,6 @@ def calculate_Lame_coefficients(E_val):
 
 mu, lmbda=calculate_Lame_coefficients(E0) 
 
-#************************************DEFINE STRESS-STRAIN TENSORS************************************# 
 def epsilon(u):
     strain_u=0.5*(nabla_grad(u)+nabla_grad(u).T)
     return strain_u
@@ -97,7 +92,6 @@ def sigma(u,mu,lmbda):
     stress_u=lmbda*div(u)*Identity(d)+2*mu*epsilon(u)
     return stress_u 
 
-#************************************DEFINE VARIATION FORMULATION************************************#
 f=Constant((0.0,0.0))  
 
 u=TrialFunction(V)    
@@ -108,7 +102,6 @@ d=u.geometric_dimension()
 a = 2*mu*inner(epsilon(u),epsilon(v))*dx + lmbda*dot(div(u),div(v))*dx
 L=dot(f,v)*dx+v[1]*F*ds(1)
 
-#************************************COMPUTE STRAIN ENERGY DENSITY (SED)************************************#
 def calculate_SED(epsilon_val,sigma_val):                
     SED_val=0.5*inner(sigma_val,epsilon_val)    
     
@@ -117,7 +110,6 @@ def calculate_SED(epsilon_val,sigma_val):
      
     return(SED_values,SED_plot)
 
-#************************************CHECK FOR CONVERGENCE CRITERIA************************************#
 def calculate_Density_change(rho_vals,SED):
     import numpy as np
     change_in_density=[]
@@ -135,7 +127,7 @@ def calculate_Density_change(rho_vals,SED):
                                                                           
             change_in_density.append(B*(stimulus[i]-k)) 
             
-            rho_array[i]=rho_vals[i]+(dt*change_in_density[i]) #eq 6
+            rho_array[i]=rho_vals[i]+(dt*change_in_density[i])
         else: 
             change_in_density.append(0)
             rho_array[i]=rho_vals[i] 
@@ -169,7 +161,6 @@ def create_rho_plot(updated_rho_array):
     rho_ele.vector().set_local(rho_ele_array)
     return rho_ele
 
-#************************************TIME STEPPING LOOP************************************#
 updated_rho_val=rho_val
 
 u=Function(V)  
@@ -178,23 +169,18 @@ cnt_freq=0.0
 day=0 
 while day<=T:    
     solve(a==L,u,bcs)
-    cnt_freq=cnt_freq+0.01  #frequency counter for day elapse
+    cnt_freq=cnt_freq+0.01  
     
-    #calculate stress-strain from nodal solution u
     epsilon_val=epsilon(u)    
     sigma_val=sigma(u,mu,lmbda)
     
-    #calculate SED
     SED,SED_plt=calculate_SED(epsilon_val,sigma_val)
             
-    #calculate updated density
     updated_rho, updated_rho_val,cnt_cell_converged,change=calculate_Density_change(updated_rho_val,SED)      
     
-    #Calculate updated E
     E_updated_t=calculate_E(updated_rho_val) 
     E0.assign(E_updated_t)
         
-    #calculate updated mu and lmbda    
     mu, lmbda=calculate_Lame_coefficients(E0)    
     
     if cnt_freq>=1:
@@ -206,7 +192,7 @@ while day<=T:
     if sum(cnt_cell_converged)==cnt_cells:
         t=T+1
         day=t
-    elif day==T: #specifid days computed
+    elif day==T: 
         print("Specified days computed")
         t=T+1
         day=t
