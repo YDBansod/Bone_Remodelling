@@ -32,7 +32,6 @@ gamma=2.0
 
 B=1.0 
 
-#time stepping variables
 T=25.0  
 dt=0.01  
 t=dt        
