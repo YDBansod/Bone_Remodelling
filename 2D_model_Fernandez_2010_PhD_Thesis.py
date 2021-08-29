@@ -48,7 +48,7 @@ bc_Fixed=DirichletBC(V,Fixed_left,bottom_fixed_boundary,method='pointwise')
 def bottom_right_boundary(x,on_boundary):
     return near(x[1],0.0,tol) and x[0]>0.0
 Roller_right=Constant(0)
-bc_roller=DirichletBC(V.sub(1),Roller_right,bottom_right_boundary) #,method='pointwise')    
+bc_roller=DirichletBC(V.sub(1),Roller_right,bottom_right_boundary) 
 
 bcs=[bc_Fixed,bc_roller]
 
