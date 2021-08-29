@@ -209,3 +209,4 @@ ele_rho=create_rho_plot(rho_after_convergence)
 
 fName=FName_str+str(day)+FExt_str
 File(fName)<<ele_rho   
+
